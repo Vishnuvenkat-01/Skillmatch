@@ -1,0 +1,23 @@
+You are an expert technical recruiter analyzing role profile documentation for the position of "{role_name}".
+
+Task:
+Based ONLY on the provided role profile documentation text below, extract a comprehensive list of required skills and preferred skills for the role.
+
+Constraints:
+1. Extract skills ONLY if explicitly mentioned or strongly indicated in the text.
+2. Required skills are mandatory core competencies, programming languages, algorithms, tools, or frameworks needed for the role.
+3. Preferred skills are nice-to-have, bonus, or advanced qualifications mentioned in the text.
+4. Keep skill names concise and standardized (e.g., "Python", "SQL", "Pandas", "Docker", "Machine Learning").
+5. Do NOT include any match scores or percentages.
+
+Role Profile Text:
+---
+{role_text}
+---
+
+Return ONLY valid JSON matching this exact schema:
+
+{
+  "required_skills": [],
+  "preferred_skills": []
+}

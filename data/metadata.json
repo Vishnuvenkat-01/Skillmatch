@@ -1,0 +1,119 @@
+[
+  {
+    "document_id": "doc_01",
+    "document_name": "01_machine_learning_engineer.pdf",
+    "document_type": "role_profile",
+    "role": "Machine Learning Engineer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_02",
+    "document_name": "02_ai_engineer.pdf",
+    "document_type": "role_profile",
+    "role": "AI Engineer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_03",
+    "document_name": "03_data_scientist.pdf",
+    "document_type": "role_profile",
+    "role": "Data Scientist",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_04",
+    "document_name": "04_data_analyst.pdf",
+    "document_type": "role_profile",
+    "role": "Data Analyst",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_05",
+    "document_name": "05_data_engineer.pdf",
+    "document_type": "role_profile",
+    "role": "Data Engineer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_06",
+    "document_name": "06_nlp_engineer.pdf",
+    "document_type": "role_profile",
+    "role": "NLP Engineer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_07",
+    "document_name": "07_computer_vision_engineer.pdf",
+    "document_type": "role_profile",
+    "role": "Computer Vision Engineer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_08",
+    "document_name": "08_python_developer.pdf",
+    "document_type": "role_profile",
+    "role": "Python Developer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_09",
+    "document_name": "09_software_engineer.pdf",
+    "document_type": "role_profile",
+    "role": "Software Engineer",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_10",
+    "document_name": "10_ai_ml_intern.pdf",
+    "document_type": "role_profile",
+    "role": "AI/ML Intern",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_11",
+    "document_name": "11_ai_ml_skills_guide.pdf",
+    "document_type": "skills_guide",
+    "role": "General",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_12",
+    "document_name": "12_ai_ml_interview_guide.pdf",
+    "document_type": "interview_guide",
+    "role": "General",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  },
+  {
+    "document_id": "doc_13",
+    "document_name": "13_ai_ml_preparation_project_guide.pdf",
+    "document_type": "preparation_guide",
+    "role": "General",
+    "category": "AI/ML",
+    "source_type": "synthetic",
+    "data_status": "generalized"
+  }
+]
