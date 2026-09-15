@@ -5,42 +5,344 @@ from services.vector_store import load_index
 from services.rag_engine import identify_candidate_roles
 from services.matcher import extract_role_requirements, calculate_match_score
 from services.roadmap import generate_roadmap, generate_resume_suggestions
+from ui_helpers import format_section_as_text
+from ui_sections import (
+    render_overview,
+    render_resume_view,
+    render_candidate_profile_page,
+    render_career_matches,
+    render_skill_gaps,
+    render_career_roadmap,
+    render_projects,
+    render_interview_prep,
+    render_resume_improvement,
+    render_job_readiness,
+)
 
 # ── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="CareerMatch AI",
     page_icon="🎯",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
-# ── Minimal custom CSS ───────────────────────────────────────────────────────
+# ── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-.badge-high   { background:#ff4b4b22; color:#ff4b4b; border:1px solid #ff4b4b55;
-                padding:2px 8px; border-radius:99px; font-size:.78rem; font-weight:600; }
-.badge-medium { background:#ffa50022; color:#e07c00; border:1px solid #ffa50055;
-                padding:2px 8px; border-radius:99px; font-size:.78rem; font-weight:600; }
-.badge-beginner     { background:#0068c922; color:#0068c9; border:1px solid #0068c955;
-                      padding:2px 8px; border-radius:99px; font-size:.78rem; font-weight:600; }
-.badge-intermediate { background:#83368222; color:#833682; border:1px solid #83368255;
-                      padding:2px 8px; border-radius:99px; font-size:.78rem; font-weight:600; }
+/* ── Main Canvas & Layout Tokens ── */
+.main .block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+    max-width: 1060px !important;
+}
+
+/* ── Typography Scale ── */
+h1 {
+    font-size: 1.65rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.02em !important;
+    margin-bottom: 0.4rem !important;
+}
+
+h2, h3 {
+    font-size: 1.20rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+p, span, label {
+    color: #334155;
+}
+
+/* ── Skill-gap priority badges ── */
+.badge-high   { background:#fee2e2; color:#ef4444; border:1px solid #fca5a5;
+                padding:3px 10px; border-radius:99px; font-size:.76rem; font-weight:600; }
+.badge-medium { background:#fef3c7; color:#d97706; border:1px solid #fcd34d;
+                padding:3px 10px; border-radius:99px; font-size:.76rem; font-weight:600; }
+.badge-beginner     { background:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;
+                      padding:3px 10px; border-radius:99px; font-size:.76rem; font-weight:600; }
+.badge-intermediate { background:#f3e8ff; color:#9333ea; border:1px solid #e9d5ff;
+                      padding:3px 10px; border-radius:99px; font-size:.76rem; font-weight:600; }
+
+/* ── Metric Card Refinements ── */
+[data-testid="stMetric"] {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 14px 18px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+[data-testid="stMetric"]:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+    border-color: #cbd5e1 !important;
+}
+
+[data-testid="stMetricLabel"] p,
+[data-testid="stMetricLabel"] span {
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #64748b !important;
+    margin-bottom: 4px !important;
+}
+
+[data-testid="stMetricValue"] div,
+[data-testid="stMetricValue"] span {
+    font-size: 1.70rem !important;
+    font-weight: 700 !important;
+    color: #1f3bb3 !important;
+    line-height: 1.2 !important;
+}
+
+/* ── File Uploader & Dropzone Styling ── */
+[data-testid="stFileUploader"] {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+}
+
+[data-testid="stFileUploader"] section {
+    background-color: #ffffff !important;
+    border: 2px dashed #cbd5e1 !important;
+    border-radius: 10px !important;
+    padding: 24px 16px !important;
+    transition: border-color 0.15s ease, background-color 0.15s ease !important;
+}
+
+[data-testid="stFileUploader"] section:hover {
+    border-color: #1f3bb3 !important;
+    background-color: #f8fafc !important;
+}
+
+/* ── Consent Checkbox Styling ── */
+[data-testid="stCheckbox"] {
+    margin-top: 10px !important;
+    margin-bottom: 14px !important;
+}
+
+[data-testid="stCheckbox"] input[type="checkbox"] {
+    accent-color: #1f3bb3 !important;
+    width: 16px !important;
+    height: 16px !important;
+    cursor: pointer !important;
+}
+
+[data-testid="stCheckbox"] label p {
+    font-size: 0.92rem !important;
+    color: #334155 !important;
+    font-weight: 500 !important;
+}
+
+/* ── Status Banner Polish ── */
+[data-testid="stNotification"] {
+    border-radius: 8px !important;
+    border: 1px solid #bfdbfe !important;
+    background-color: #eff6ff !important;
+}
+
+/* ── Primary Buttons & Controls ── */
+.stButton > button {
+    background-color: #1f3bb3 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 8px 16px !important;
+    transition: background-color 0.15s ease !important;
+}
+
+.stButton > button:hover {
+    background-color: #1a3299 !important;
+}
+
+/* ── Sidebar Navigation Rectangular Menu Block Styling ── */
+section[data-testid="stSidebar"] {
+    min-width: 250px !important;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] {
+    width: 100% !important;
+    gap: 4px !important;
+}
+
+/* Hide only the radio circle graphic container, keeping text container intact */
+section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child:not([data-testid="stMarkdownContainer"]) {
+    display: none !important;
+}
+
+/* Base style for full-width rectangular navigation items */
+section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 9px 12px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    transition: background 0.15s ease-in-out !important;
+    box-sizing: border-box !important;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] > label p {
+    margin: 0 !important;
+    font-size: 0.92rem !important;
+    font-weight: 500 !important;
+    color: #3c4257 !important;
+    line-height: 1.4 !important;
+}
+
+/* Hover state for inactive rectangular items */
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+    background: #f2f4f9 !important;
+}
+
+/* Active / Selected rectangular item highlight */
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+    background: #e8edff !important;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
+    color: #1f3bb3 !important;
+    font-weight: 600 !important;
+}
+
+/* Section Group Headings */
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(1) {
+    margin-top: 14px !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(1)::before {
+    content: "MAIN";
+    position: absolute;
+    top: -16px;
+    left: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(2) {
+    margin-top: 22px !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(2)::before {
+    content: "PROFILE";
+    position: absolute;
+    top: -16px;
+    left: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(4) {
+    margin-top: 22px !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(4)::before {
+    content: "CAREER ANALYSIS";
+    position: absolute;
+    top: -16px;
+    left: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(7) {
+    margin-top: 22px !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(7)::before {
+    content: "PREPARATION";
+    position: absolute;
+    top: -16px;
+    left: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(10) {
+    margin-top: 22px !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(10)::before {
+    content: "FINAL INSIGHT";
+    position: absolute;
+    top: -16px;
+    left: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    pointer-events: none;
+}
 </style>
 """, unsafe_allow_html=True)
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SECTION 1 – HEADER & RESUME UPLOAD
+# SIDEBAR NAVIGATION
+# Rendered first so it is always visible regardless of which gate fires below.
 # ════════════════════════════════════════════════════════════════════════════
-st.title("🎯 CareerMatch AI")
-st.markdown("#### Understand where your resume fits — and what to learn next.")
+PAGES = [
+    "📋 Overview",
+    "📄 Resume",
+    "👤 Candidate Profile",
+    "🏆 Career Matches",
+    "🔍 Skill Gaps",
+    "🗺️ Career Roadmap",
+    "🚀 Projects",
+    "🎤 Interview Prep",
+    "📝 Resume Improvement",
+    "⚡ Job Readiness",
+]
+
+with st.sidebar:
+    st.markdown("## 🎯 CareerMatch AI")
+    st.markdown("*AI-powered career intelligence*")
+    st.divider()
+
+    selected_page = st.radio(
+        "Navigation",
+        PAGES,
+        label_visibility="collapsed",
+        key="nav_page",
+    )
+
+    st.divider()
+    st.caption("**Pipeline Status**")
+    st.caption("✅ Resume uploaded"   if st.session_state.get("resume_text")      else "⏳ Resume not yet uploaded")
+    st.caption("✅ Profile confirmed" if st.session_state.get("profile_confirmed") else "⏳ Profile not yet confirmed")
+    st.caption("✅ Analysis complete" if st.session_state.get("match_results")     else "⏳ Analysis not yet run")
+    st.divider()
+    st.caption("🔒 Resume is processed for this session only and not stored permanently.")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# PIPELINE — GATE 1: UPLOAD + CONSENT
+# All pipeline gates are UNCHANGED from the original app.
+# ════════════════════════════════════════════════════════════════════════════
+st.subheader("Upload Your Resume")
 st.caption(
     "🔒 This prototype does not permanently store uploaded resumes. "
     "Your resume is processed only for this session."
 )
-st.divider()
 
-st.subheader("📄 Step 1 — Upload Your Resume")
 uploaded_file = st.file_uploader(
     "Upload your resume (PDF or DOCX)",
     type=["pdf", "docx"],
@@ -52,26 +354,27 @@ consent = st.checkbox("I consent to processing my resume text for career analysi
 if uploaded_file is not None:
     if st.session_state.get("current_file_name") != uploaded_file.name:
         st.session_state.update({
-            "current_file_name": uploaded_file.name,
-            "resume_text": None,
-            "candidate_profile": None,
-            "profile_confirmed": False,
-            "match_results": None,
-            "roadmap_data": None,
+            "current_file_name":  uploaded_file.name,
+            "resume_text":        None,
+            "candidate_profile":  None,
+            "profile_confirmed":  False,
+            "match_results":      None,
+            "roadmap_data":       None,
             "resume_suggestions": None,
         })
 
 if uploaded_file is None:
     st.session_state.update({
-        "current_file_name": None,
-        "resume_text": None,
-        "candidate_profile": None,
-        "profile_confirmed": False,
-        "match_results": None,
-        "roadmap_data": None,
+        "current_file_name":  None,
+        "resume_text":        None,
+        "candidate_profile":  None,
+        "profile_confirmed":  False,
+        "match_results":      None,
+        "roadmap_data":       None,
         "resume_suggestions": None,
     })
     st.info("💡 Upload your resume above and check the consent box to get started.")
+    st.caption("✨ Once uploaded, CareerMatch AI will extract your profile, evaluate role readiness, and generate your step-by-step career roadmap.")
     st.stop()
 
 if not consent:
@@ -79,12 +382,14 @@ if not consent:
     st.stop()
 
 
-# ── Extract raw resume text ──────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# PIPELINE — STEP A: EXTRACT RESUME TEXT
+# ════════════════════════════════════════════════════════════════════════════
 if not st.session_state.get("resume_text"):
     try:
         with st.spinner("Extracting resume text…"):
             text, word_count = extract_resume_text(uploaded_file)
-            st.session_state["resume_text"] = text
+            st.session_state["resume_text"]       = text
             st.session_state["resume_word_count"] = word_count
     except Exception as e:
         print(f"[app] Resume extraction error: {e}")
@@ -92,21 +397,20 @@ if not st.session_state.get("resume_text"):
         st.stop()
 
 resume_text = st.session_state["resume_text"]
-word_count = st.session_state.get("resume_word_count", len(resume_text.split()))
+word_count  = st.session_state.get("resume_word_count", len(resume_text.split()))
 
 if word_count < 50:
     st.warning(
-        f"⚠️ **Low Text Warning:** Only {word_count} words could be extracted from your resume. "
-        "If your resume is a scanned document or image PDF, extraction may be incomplete. "
-        "Consider uploading a text-based document for best results."
+        f"⚠️ **Low Text Warning:** Only {word_count} words could be extracted. "
+        "If your resume is a scanned document or image PDF, extraction may be incomplete."
     )
 
-st.success("✅ Resume text extracted successfully!")
-with st.expander("View extracted text (for your review)"):
-    st.text(resume_text)
+st.success("✅ Resume extracted. Use the sidebar to navigate.")
 
 
-# ── Extract candidate profile via LLM ───────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# PIPELINE — STEP B: EXTRACT CANDIDATE PROFILE VIA LLM
+# ════════════════════════════════════════════════════════════════════════════
 if not st.session_state.get("candidate_profile"):
     try:
         with st.spinner("Extracting your profile via AI…"):
@@ -119,113 +423,26 @@ if not st.session_state.get("candidate_profile"):
         st.stop()
 
 
-# ── Text formatting helper for profile sections ────────────────────────────────
-def format_section_as_text(items, section_type="general") -> str:
-    """
-    Format a list of dicts or strings into clean, human-readable markdown text.
-    Replaces raw JSON displays for Education, Experience, and Projects.
-    """
-    if not items:
-        return "*None listed*"
-
-    if isinstance(items, str):
-        return items.strip() or "*None listed*"
-
-    if not isinstance(items, list):
-        return str(items)
-
-    formatted_blocks = []
-    for item in items:
-        if isinstance(item, str):
-            formatted_blocks.append(f"• {item}")
-        elif isinstance(item, dict):
-            if section_type == "education":
-                degree = item.get("degree") or item.get("title") or item.get("field") or ""
-                institution = item.get("institution") or item.get("university") or item.get("school") or ""
-                year = item.get("year") or item.get("dates") or item.get("duration") or ""
-
-                parts = []
-                if degree:
-                    parts.append(f"**{degree}**")
-                if institution:
-                    parts.append(f"*{institution}*")
-                if year:
-                    parts.append(f"({year})")
-
-                line = " - ".join(parts) if parts else ", ".join([f"{k.replace('_', ' ').title()}: {v}" for k, v in item.items() if v])
-                formatted_blocks.append(f"• {line}")
-
-            elif section_type == "experience":
-                title = item.get("title") or item.get("role") or item.get("position") or ""
-                company = item.get("company") or item.get("organization") or ""
-                duration = item.get("duration") or item.get("dates") or item.get("year") or ""
-                desc = item.get("description") or item.get("responsibilities") or ""
-
-                header_parts = []
-                if title:
-                    header_parts.append(f"**{title}**")
-                if company:
-                    header_parts.append(f"*{company}*")
-                if duration:
-                    header_parts.append(f"({duration})")
-
-                header = " | ".join(header_parts) if header_parts else ", ".join([f"{k.replace('_', ' ').title()}: {v}" for k, v in item.items() if k != "description" and v])
-                block = f"• {header}"
-                if desc:
-                    if isinstance(desc, list):
-                        for d in desc:
-                            block += f"\n  - {d}"
-                    else:
-                        block += f"\n  - {desc}"
-                formatted_blocks.append(block)
-
-            elif section_type == "projects":
-                name = item.get("name") or item.get("title") or ""
-                desc = item.get("description") or item.get("summary") or ""
-                tech = item.get("tech_stack") or item.get("technologies") or item.get("skills") or ""
-
-                parts = []
-                if name:
-                    parts.append(f"**{name}**")
-
-                header = " ".join(parts) if parts else ", ".join([f"{k.replace('_', ' ').title()}: {v}" for k, v in item.items() if k != "description" and v])
-                block = f"• {header}"
-                if desc:
-                    block += f"\n  - {desc}"
-                if tech:
-                    tech_str = ", ".join(tech) if isinstance(tech, list) else str(tech)
-                    block += f"\n  - *Tech:* {tech_str}"
-                formatted_blocks.append(block)
-            else:
-                fields = [f"**{k.replace('_', ' ').title()}:** {v}" for k, v in item.items() if v]
-                formatted_blocks.append("• " + " | ".join(fields))
-        else:
-            formatted_blocks.append(f"• {str(item)}")
-
-    return "\n\n".join(formatted_blocks)
-
-
 # ════════════════════════════════════════════════════════════════════════════
-# SECTION 2 – CANDIDATE PROFILE REVIEW / EDIT GATE
+# PIPELINE — GATE 2: PROFILE REVIEW / CONFIRM FORM
 # ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("👤 Step 2 — Review & Confirm Your Profile")
-
 profile = st.session_state["candidate_profile"]
 
 if not st.session_state.get("profile_confirmed", False):
+    st.divider()
+    st.subheader("👤 Review & Confirm Your Profile")
     st.caption("Review the AI-extracted information below, edit if needed, then confirm to continue.")
 
     with st.form("profile_edit_form"):
         edited_name = st.text_input("Name", value=profile.get("name", ""))
 
-        skills_val = profile.get("skills", [])
+        skills_val    = profile.get("skills", [])
         initial_skills = ", ".join(skills_val) if isinstance(skills_val, list) else str(skills_val or "")
-        edited_skills = st.text_area("Skills (comma-separated)", value=initial_skills, height=100)
+        edited_skills  = st.text_area("Skills (comma-separated)", value=initial_skills, height=100)
 
         certs_val = profile.get("certifications", [])
         if isinstance(certs_val, list):
-            cert_items = [c.get("name") if isinstance(c, dict) else str(c) for c in certs_val]
+            cert_items    = [c.get("name") if isinstance(c, dict) else str(c) for c in certs_val]
             initial_certs = ", ".join(cert_items)
         else:
             initial_certs = str(certs_val or "")
@@ -255,35 +472,16 @@ if not st.session_state.get("profile_confirmed", False):
             st.session_state["roadmap_data"]       = None
             st.session_state["resume_suggestions"] = None
             st.rerun()
+
     st.stop()
 
-# Show compact confirmed profile summary
+
+# ── Confirmed profile shortcut variable (used throughout the pipeline below) ──
 confirmed_profile = st.session_state["candidate_profile"]
-with st.expander(f"✅ Profile confirmed — {confirmed_profile.get('name') or 'Candidate'}", expanded=False):
-    skills_list = confirmed_profile.get("skills", [])
-    st.markdown(f"**Skills:** {', '.join(skills_list) if skills_list else '*None listed*'}")
-    certs_list = confirmed_profile.get("certifications", [])
-    st.markdown(f"**Certifications:** {', '.join(certs_list) if certs_list else '*None listed*'}")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("**Education**")
-        st.markdown(format_section_as_text(confirmed_profile.get("education", []), "education"))
-    with col2:
-        st.markdown("**Experience**")
-        st.markdown(format_section_as_text(confirmed_profile.get("experience", []), "experience"))
-    with col3:
-        st.markdown("**Projects**")
-        st.markdown(format_section_as_text(confirmed_profile.get("projects", []), "projects"))
-    if st.button("✏️ Edit Profile"):
-        st.session_state["profile_confirmed"]  = False
-        st.session_state["match_results"]      = None
-        st.session_state["roadmap_data"]       = None
-        st.session_state["resume_suggestions"] = None
-        st.rerun()
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# LOAD VECTOR STORE (cached across reruns via st.cache_resource)
+# PIPELINE — LOAD VECTOR STORE (cached across reruns)
 # ════════════════════════════════════════════════════════════════════════════
 @st.cache_resource(show_spinner="Loading knowledge base index…")
 def _load_index():
@@ -298,19 +496,19 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# RUN MATCHING PIPELINE (once; cached in session_state)
+# PIPELINE — RUN MATCHING (once; cached in session_state)
 # ════════════════════════════════════════════════════════════════════════════
 if not st.session_state.get("match_results"):
-    # Validate essential profile fields before proceeding to matching
     profile_skills = confirmed_profile.get("skills", [])
-    profile_exp = confirmed_profile.get("experience", [])
-    profile_proj = confirmed_profile.get("projects", [])
-    profile_edu = confirmed_profile.get("education", [])
+    profile_exp    = confirmed_profile.get("experience", [])
+    profile_proj   = confirmed_profile.get("projects", [])
+    profile_edu    = confirmed_profile.get("education", [])
 
     if not profile_skills and not profile_exp and not profile_proj and not profile_edu:
         st.error(
-            "❌ Missing Profile Data: Your candidate profile has no skills, experience, projects, or education listed. "
-            "Please click '✏️ Edit Profile' above to add your details before running career matching."
+            "❌ Missing Profile Data: Your candidate profile has no skills, experience, projects, or "
+            "education listed. Please click the sidebar **👤 Candidate Profile** page and use "
+            "**Edit Profile** to add your details."
         )
         st.stop()
 
@@ -330,7 +528,7 @@ if not st.session_state.get("match_results"):
                 and c.get("metadata", {}).get("document_type") == "role_profile"
             ]
             with st.spinner(f"Scoring match for **{role}**…"):
-                req = extract_role_requirements(role, role_chunks)
+                req   = extract_role_requirements(role, role_chunks)
                 score = calculate_match_score(
                     confirmed_profile,
                     req,
@@ -338,9 +536,9 @@ if not st.session_state.get("match_results"):
                     full_resume_text=resume_text,
                 )
             match_results.append({
-                "role": role,
+                "role":         role,
                 "requirements": req,
-                "score": score,
+                "score":        score,
             })
 
         match_results.sort(key=lambda r: r["score"]["overall_score"], reverse=True)
@@ -353,111 +551,22 @@ if not st.session_state.get("match_results"):
 
 match_results = st.session_state["match_results"]
 
-# Aggregate all missing skills across all roles for roadmap & resume advice
+
+# ── Aggregate missing skills (used by multiple pages) ───────────────────────
 all_missing: dict = {}
 for mr in match_results:
     for ms in mr["score"].get("missing_skills", []):
         skill = ms["skill"]
-        if skill not in all_missing or (all_missing[skill]["priority"] == "medium" and ms["priority"] == "high"):
+        if skill not in all_missing or (
+            all_missing[skill]["priority"] == "medium" and ms["priority"] == "high"
+        ):
             all_missing[skill] = ms
-aggregated_missing = list(all_missing.values())
-top_missing_high_medium = [m for m in aggregated_missing if m["priority"] in ("high", "medium")][:8]
+aggregated_missing       = list(all_missing.values())
+top_missing_high_medium  = [m for m in aggregated_missing if m["priority"] in ("high", "medium")][:8]
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SECTION 3 – TOP 3 CAREER MATCHES
-# ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("🏆 Step 3 — Top 3 Career Matches")
-st.caption("Estimated compatibility score — not a hiring prediction.")
-
-cols = st.columns(len(match_results))
-for i, mr in enumerate(match_results):
-    overall = mr["score"]["overall_score"]
-    with cols[i]:
-        st.markdown(f"### {mr['role']}")
-        st.progress(int(overall) / 100)
-        st.metric(label="Match Score", value=f"{overall:.1f}%")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# SECTION 4 – SKILL GAP ANALYSIS
-# ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("🔍 Step 4 — Skill Gap Analysis")
-
-for mr in match_results:
-    sc = mr["score"]
-    with st.expander(f"**{mr['role']}** — Skill Gap Detail", expanded=(mr == match_results[0])):
-        bd = sc["breakdown"]
-        st.markdown("**Score Breakdown**")
-        breakdown_data = {
-            "Component": [
-                "Required Skills (50%)",
-                "Preferred Skills (20%)",
-                "Education (15%)",
-                "Project Relevance (10%)",
-                "Experience (5%)",
-            ],
-            "Score": [
-                f"{bd['required_skills_score']:.1f} / 50",
-                f"{bd['preferred_skills_score']:.1f} / 20",
-                f"{bd['education_score']:.1f} / 15",
-                f"{bd['project_score']:.1f} / 10",
-                f"{bd['experience_score']:.1f} / 5",
-            ],
-        }
-        st.table(breakdown_data)
-
-        col_r, col_p = st.columns(2)
-        with col_r:
-            st.markdown("**Required Skills**")
-            for s in sc.get("matched_required_skills", []):
-                st.markdown(f"✅ {s['skill']}")
-            for s in sc.get("missing_required_skills", []):
-                st.markdown(f"🔴 {s['skill']}")
-        with col_p:
-            st.markdown("**Preferred Skills**")
-            for s in sc.get("matched_preferred_skills", []):
-                st.markdown(f"✅ {s['skill']}")
-            for s in sc.get("missing_preferred_skills", []):
-                st.markdown(f"🟡 {s['skill']}")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# SECTION 5 – EXPLAINABLE MATCH SCORE
-# ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("📊 Step 5 — Explainable Match Score")
-st.caption("Estimated compatibility score — not a hiring prediction.")
-
-for mr in match_results:
-    sc = mr["score"]
-    bd = sc["breakdown"]
-    with st.expander(f"**{mr['role']}** — Full Breakdown ({sc['overall_score']:.1f}%)", expanded=False):
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Required Skills", f"{bd['required_skills_score']:.1f}/50")
-        c2.metric("Preferred Skills", f"{bd['preferred_skills_score']:.1f}/20")
-        c3.metric("Education",        f"{bd['education_score']:.1f}/15")
-        c4.metric("Projects",         f"{bd['project_score']:.1f}/10")
-        c5.metric("Experience",       f"{bd['experience_score']:.1f}/5")
-
-        missing_skills = sc.get("missing_skills", [])
-        if missing_skills:
-            st.markdown("**Priority Gaps**")
-            for ms in missing_skills:
-                badge_cls = "badge-high" if ms["priority"] == "high" else "badge-medium"
-                badge_lbl = ms["priority"].upper()
-                st.markdown(
-                    f"<span class='{badge_cls}'>{badge_lbl}</span> &nbsp; {ms['skill']}",
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.success("No significant skill gaps found for this role!")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# GENERATE ROADMAP (once; cached in session_state)
+# PIPELINE — GENERATE ROADMAP (once; cached in session_state)
 # ════════════════════════════════════════════════════════════════════════════
 if not st.session_state.get("roadmap_data"):
     try:
@@ -474,76 +583,7 @@ roadmap_data = st.session_state["roadmap_data"]
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SECTION 6 – PREPARATION ROADMAP
-# ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("🗺️ Step 6 — Preparation Roadmap")
-st.caption(
-    "A suggested 2–4 week learning plan based on your skill gaps. "
-    "Completing this roadmap does not guarantee any interview or hiring outcome."
-)
-
-roadmap_items = roadmap_data.get("roadmap", [])
-if roadmap_items:
-    for item in roadmap_items:
-        priority     = item.get("priority", "medium")
-        difficulty   = item.get("difficulty", "beginner").lower()
-        skill        = item.get("skill", "")
-        project_idea = item.get("project_idea", "")
-        resource     = item.get("resource_type", "")
-        weeks        = item.get("estimated_weeks", 1)
-
-        badge_p = (
-            "<span class='badge-high'>HIGH</span>"
-            if priority == "high"
-            else "<span class='badge-medium'>MEDIUM</span>"
-        )
-        badge_d = (
-            "<span class='badge-beginner'>Beginner</span>"
-            if difficulty == "beginner"
-            else "<span class='badge-intermediate'>Intermediate</span>"
-        )
-
-        with st.container():
-            st.markdown(
-                f"{badge_p} {badge_d} &nbsp; **{skill}** &nbsp; ⏱ {weeks} week{'s' if weeks != 1 else ''}",
-                unsafe_allow_html=True,
-            )
-            col_proj, col_res = st.columns([3, 2])
-            with col_proj:
-                st.markdown(f"💡 **Project Idea:** {project_idea}")
-            with col_res:
-                st.markdown(f"📚 **Resource Type:** {resource}")
-            st.markdown("---")
-else:
-    st.info("No roadmap items generated. Your skill set may already be a strong fit for your matched roles!")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# SECTION 7 – INTERVIEW PREPARATION
-# ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("🎤 Step 7 — Interview Preparation")
-
-interview_questions = roadmap_data.get("interview_questions", [])
-if interview_questions:
-    grouped: dict = {}
-    for q in interview_questions:
-        skill = q.get("related_skill", "General")
-        grouped.setdefault(skill, []).append(q)
-
-    for skill, questions in grouped.items():
-        with st.expander(f"**{skill}** ({len(questions)} question{'s' if len(questions) > 1 else ''})", expanded=False):
-            for q in questions:
-                q_type = q.get("type", "conceptual").lower()
-                label  = "🧠 Conceptual" if q_type == "conceptual" else "🔧 Applied"
-                st.markdown(f"{label} &nbsp; — &nbsp; {q.get('question', '')}")
-else:
-    st.info("No interview questions generated.")
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# GENERATE RESUME SUGGESTIONS (once; cached in session_state)
+# PIPELINE — GENERATE RESUME SUGGESTIONS (once; cached in session_state)
 # ════════════════════════════════════════════════════════════════════════════
 if not st.session_state.get("resume_suggestions"):
     try:
@@ -560,62 +600,44 @@ resume_suggestions = st.session_state["resume_suggestions"]
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SECTION 8 – RESUME IMPROVEMENT
+# DISPLAY — Route to the selected sidebar page
+# All pipeline gates have passed by this point.
 # ════════════════════════════════════════════════════════════════════════════
 st.divider()
-st.subheader("📝 Step 8 — Resume Improvement Suggestions")
-st.caption(
-    "Suggestions are limited to wording, structure, and honest next-step advice. "
-    "No skills or achievements will be added that aren't already on your resume."
-)
 
-suggestions = resume_suggestions.get("suggestions", [])
-if suggestions:
-    for i, suggestion in enumerate(suggestions, 1):
-        st.markdown(f"**{i}.** {suggestion}")
-else:
-    st.info("No resume suggestions generated.")
+if selected_page == "📋 Overview":
+    render_overview(match_results, aggregated_missing, confirmed_profile)
 
+elif selected_page == "📄 Resume":
+    render_resume_view(
+        resume_text,
+        word_count,
+        uploaded_file.name if uploaded_file else "",
+    )
 
-# ════════════════════════════════════════════════════════════════════════════
-# SECTION 9 – JOB READINESS SCORE
-# ════════════════════════════════════════════════════════════════════════════
-st.divider()
-st.subheader("⚡ Step 9 — Job Readiness Score")
-st.caption("Estimated compatibility score — not a hiring prediction.")
+elif selected_page == "👤 Candidate Profile":
+    render_candidate_profile_page(confirmed_profile)
 
-if match_results:
-    best = match_results[0]
-    best_score = best["score"]["overall_score"]
+elif selected_page == "🏆 Career Matches":
+    render_career_matches(match_results)
 
-    if best_score >= 80:
-        label, icon = "High Readiness",     "🟢"
-    elif best_score >= 55:
-        label, icon = "Moderate Readiness", "🟡"
-    else:
-        label, icon = "Early Stage",        "🔴"
+elif selected_page == "🔍 Skill Gaps":
+    render_skill_gaps(match_results, aggregated_missing)
 
-    col_left, col_right = st.columns([1, 2])
-    with col_left:
-        st.metric(
-            label=f"{icon} {label}",
-            value=f"{best_score:.1f}%",
-            help="Based on your best-matched role. Not a hiring prediction.",
-        )
-        st.progress(int(best_score) / 100)
-    with col_right:
-        high_gaps   = sum(1 for m in aggregated_missing if m["priority"] == "high")
-        medium_gaps = sum(1 for m in aggregated_missing if m["priority"] == "medium")
-        st.markdown(f"- 🔴 **High-priority gaps:** {high_gaps}")
-        st.markdown(f"- 🟡 **Medium-priority gaps:** {medium_gaps}")
-        st.markdown(f"- 🏆 **Best matched role:** {best['role']}")
+elif selected_page == "🗺️ Career Roadmap":
+    render_career_roadmap(roadmap_data)
 
-        if high_gaps == 0 and medium_gaps <= 2:
-            st.success("You're nearly job-ready! Focus on portfolio polish.")
-        elif high_gaps <= 3:
-            st.info("Close the high-priority gaps and you'll be in a strong position.")
-        else:
-            st.warning("Focus on core required skills first — aim for high-priority items in the roadmap.")
+elif selected_page == "🚀 Projects":
+    render_projects(confirmed_profile)
+
+elif selected_page == "🎤 Interview Prep":
+    render_interview_prep(roadmap_data)
+
+elif selected_page == "📝 Resume Improvement":
+    render_resume_improvement(resume_suggestions)
+
+elif selected_page == "⚡ Job Readiness":
+    render_job_readiness(match_results, aggregated_missing)
 
 st.divider()
 st.caption("CareerMatch AI · Analysis is illustrative only · Not a hiring or placement service.")

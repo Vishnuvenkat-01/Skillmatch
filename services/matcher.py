@@ -123,7 +123,7 @@ def extract_role_requirements(role_name: str, role_chunks: list[dict]) -> dict:
             "preferred_skills": pref_skills if isinstance(pref_skills, list) else []
         }
     except json.JSONDecodeError as json_err:
-        print(f"[matcher] JSON parse error for role '{role_name}': {json_err}\nRaw output:\n{response.text}")
+        print(f"[matcher] JSON parse error for role '{role_name}': {json_err}\nRaw output:\n{raw_text}")
         return {"required_skills": [], "preferred_skills": []}
 
 
