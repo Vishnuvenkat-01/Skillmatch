@@ -1,4 +1,5 @@
 import streamlit as st
+from auth import run_auth_gate, render_user_badge
 from services.resume_parser import extract_resume_text
 from services.profile_extractor import extract_candidate_profile
 from services.vector_store import load_index
@@ -296,6 +297,13 @@ section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-child(10)::b
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# AUTHENTICATION GATE
+# Must run before any protected content is rendered.
+# ════════════════════════════════════════════════════════════════════════════
+_authenticator = run_auth_gate()
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # SIDEBAR NAVIGATION
 # Rendered first so it is always visible regardless of which gate fires below.
 # ════════════════════════════════════════════════════════════════════════════
@@ -331,6 +339,8 @@ with st.sidebar:
     st.caption("✅ Analysis complete" if st.session_state.get("match_results")     else "⏳ Analysis not yet run")
     st.divider()
     st.caption("🔒 Resume is processed for this session only and not stored permanently.")
+    # ── Authenticated user info + logout ──────────────────────────────────
+    render_user_badge(_authenticator)
 
 
 # ════════════════════════════════════════════════════════════════════════════
